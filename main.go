@@ -17,7 +17,6 @@ func main() {
 	rootDir := os.Getenv("DOLPHIN_EMU_USERPATH")
 	saveDir := fmt.Sprintf("%v/StateSaves", rootDir)
 	GCDir := fmt.Sprintf("%v/GC", rootDir)
-	log.Printf("Monitoring: \n%v\n%v\n", saveDir, GCDir)
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -25,8 +24,9 @@ func main() {
 	}
 	defer watcher.Close()
 
-	//watcher.Add(saveDir)
+	watcher.Add(saveDir)
 	watcher.Add(GCDir)
+	watcher.Add(fmt.Sprintf("%v/USA/Card A", GCDir))
 
 	wg := &sync.WaitGroup{}
 	wg.Add(1)

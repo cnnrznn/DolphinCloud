@@ -1,12 +1,13 @@
 package main
 
 import (
-	"fmt"
+	"bytes"
 	"log"
+	"net/http"
 	"os"
-	"strings"
 	"sync"
 
+	"github.com/cnnrznn/DolphinCloud/types"
 	"github.com/fsnotify/fsnotify"
 )
 
@@ -14,19 +15,15 @@ func main() {
 	log.SetFlags(log.Lshortfile)
 	log.Println("Initialized")
 
-	rootDir := os.Getenv("DOLPHIN_EMU_USERPATH")
-	saveDir := fmt.Sprintf("%v/StateSaves", rootDir)
-	GCDir := fmt.Sprintf("%v/GC", rootDir)
-
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer watcher.Close()
 
-	watcher.Add(saveDir)
-	watcher.Add(GCDir)
-	watcher.Add(fmt.Sprintf("%v/USA/Card A", GCDir))
+	cardDir := os.Getenv("DOLPHINCLOUD_MEMCARD")
+	watcher.Add(cardDir)
+	log.Printf("Monitoring %v\n", cardDir)
 
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
@@ -55,13 +52,29 @@ func handleWatcher(watcher *fsnotify.Watcher, wg *sync.WaitGroup) {
 }
 
 func handleEvent(event fsnotify.Event) error {
-	if event.Op != fsnotify.Create {
-		return nil
+	cloudAddr := os.Getenv("DOLPHINCLOUD_SERVER")
+
+	file, err := os.Open(event.Name)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	data, err := os.ReadFile(event.Name)
+	if err != nil {
+		return err
 	}
 
-	if strings.HasSuffix(event.Name, ".tmp") {
-		return nil
+	gci := types.GCI{
+		Name: event.Name,
+		Data: data,
 	}
+	bs, err := gci.Marshal()
+	if err != nil {
+		return err
+	}
+
+	http.Post(cloudAddr, "application/json", bytes.NewReader(bs))
 
 	return nil
 }

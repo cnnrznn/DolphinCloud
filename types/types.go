@@ -1,10 +1,15 @@
 package types
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
 
 type GCI struct {
-	Name string `json:"name"`
-	Data []byte `json:"data"`
+	Name     string    `json:"name"`
+	Data     []byte    `json:"data"`
+	Previous time.Time `json:"previous_timestamp"`
+	Current  time.Time `json:"current_timestamp"`
 }
 
 func (g GCI) Marshal() ([]byte, error) {
